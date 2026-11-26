@@ -22,8 +22,8 @@ svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.65;strok
 #number{display:block;font-size:clamp(29px,9.1vw,57px);font-weight:850;line-height:1.05;letter-spacing:-.045em;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 #number.small{font-size:clamp(24px,6.6vw,42px)}
 .keys{flex:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(5,minmax(44px,1fr));gap:8px;padding:4px 0}
-.key{border:1px solid #dfb18a;border-bottom:1px solid #b77b55;border-radius:clamp(15px,5vw,24px);background:linear-gradient(#fffaf0,#fff0da);box-shadow:0 4px 0 #b57c55,0 6px 6px var(--shadow),inset 0 1px 2px #fff;font-size:clamp(23px,6.3vw,36px);font-weight:820;padding:0;min-height:0}
-.key.utility{font-size:clamp(15px,4.5vw,24px);background:linear-gradient(#fff2df,#f8d6ad)}
+.key{border:1px solid #dfb18a;border-bottom:1px solid #b77b55;border-radius:clamp(15px,5vw,24px);background:linear-gradient(#fffaf0,#fff0da);box-shadow:0 4px 0 #b57c55,0 6px 6px var(--shadow),inset 0 1px 2px #fff;font-size:clamp(25px,calc(6.3vw + 2px),38px);font-weight:820;padding:0;min-height:0}
+.key.utility{font-size:clamp(17px,calc(4.5vw + 2px),26px);background:linear-gradient(#fff2df,#f8d6ad)}
 .key.operator{background:linear-gradient(#ffe9cd,#ffd6a7)}
 .key.equals,.action{color:#3e200f;background:linear-gradient(#ffa741,#f88124);border-color:#c65d13}
 .key:active,.key.is-pressed{transform:translateY(4px);filter:brightness(.86);box-shadow:inset 0 3px 6px #79462855}
@@ -100,10 +100,40 @@ dialog::backdrop{background:#3e220b75}
 #property form details label + label{margin-top:8px}
 .amount-name:empty{display:none}
 .amount-name.money-error{color:#a12920}
-#pwa-bar{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 8px);z-index:20;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;background:#fff8eb;border:2px solid #c9996d;border-radius:16px;box-shadow:0 6px 16px #6b3a1a55;font-size:15px;font-weight:700;color:var(--dark)}
+#property-quick .pq-form{row-gap:16px}
+.pq{display:grid;gap:6px}
+#property form[hidden],.pq[hidden],#property .result[hidden]{display:none!important}
+.pq-text{margin:0;font-size:16px;font-weight:850;color:var(--dark)}
+.pq-sub{margin:-2px 0 2px;font-size:12.5px;line-height:1.45;color:#7a5236}
+.pq-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:8px}
+.pq-choices button{min-height:48px;padding:6px 8px;border:1.5px solid #d6ac87;border-radius:12px;background:#fff2de;font-size:15px;font-weight:800;color:var(--dark)}
+.pq-choices [aria-pressed=true]{background:linear-gradient(#ffa741,#f88124);border-color:#c65d13;color:#3e200f}
+#property-quick .result:not(:empty){display:grid;gap:10px;background:none;border:0;padding:0}
+.pr-total,.pr-box{padding:13px;border-radius:13px;background:#fff1db;border:1px solid #e9c5a1}
+.pr-total{background:#ffe2bd;border:2px solid #e39a55}
+.pr-total h3,.pr-box h3{margin:0 0 4px;font-size:15px}
+.pr-sub{font-size:12px;color:#7a5236;margin:0!important}
+.pr-warn{margin:8px 0 0!important;padding:8px 10px;border-radius:10px;background:#ffe1d6;border:1px solid #e0957c;color:#8f2a12;font-size:13px;font-weight:750;line-height:1.45}
+.pr-info{margin:8px 0 0!important;font-size:12.5px;line-height:1.45;color:#6c4b37}
+.pr-wait{margin:0;font-size:13px;color:#7a5236}#pwa-bar{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 8px);z-index:20;display:flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;background:#fff8eb;border:2px solid #c9996d;border-radius:16px;box-shadow:0 6px 16px #6b3a1a55;font-size:15px;font-weight:700;color:var(--dark)}
 #pwa-bar[hidden]{display:none}
 #pwa-bar span{flex:1;min-width:0}
 #pwa-bar .action{min-height:44px;padding:8px 14px;font-size:15px;text-decoration:none;display:inline-flex;align-items:center;color:#3e200f}
 #pwa-bar .pwa-close{min-width:44px;min-height:44px;border:0;background:none;font-size:18px;color:var(--dark)}
 #pwa-note ul{margin:10px 0 0;padding-left:20px;line-height:1.6}
 @media print{#pwa-bar{display:none!important}}
+
+/* v15b: 기호 그림, 글씨 크기 3단계(본문 16·보조 14·큰 금액), 빠른 계산 작은 버튼 */
+.key{display:grid;place-items:center}
+.key-symbol{width:.95em;height:.95em;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+.key-symbol circle{fill:currentColor;stroke:none}
+.card label,.pq-text,.result h3,.pr-total h3,.pr-box h3,.pq-choices button,.stats{font-size:16px}
+.life-tabs button{font-size:15px}
+.amount-name,.note,.pq-sub,.pr-sub,.pr-info,.pr-wait,.pr-warn,.property-sources,.result details,.history{font-size:14px}
+#property h2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#property h2 .quick-button{flex:none;min-height:36px;padding:6px 12px;border:1px solid #c65d13;border-radius:999px;background:linear-gradient(#ffa741,#f88124);color:#3e200f;font-size:14px;font-weight:850;letter-spacing:0}
+#property h2 .quick-button[aria-pressed=true]{background:#e8690f;color:#fff}
+/* 주아: 숫자·제목·탭·버튼 (설명 글은 폰 기본 고딕) */
+@font-face{font-family:'Jua';src:url(assets/jua.woff2) format('woff2');font-display:swap}
+.key,.display,nav button,#tabs button,h2,.result h3,.pr-total h3,.pr-box h3,.property-amount,.pq-text,.pq-choices button,.quick-button,.life-tabs button,.history summary,.action{font-family:'Jua',system-ui,-apple-system,"Malgun Gothic",sans-serif;font-weight:400!important}
+.pq-choices button{word-break:keep-all}

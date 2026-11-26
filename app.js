@@ -36,9 +36,14 @@ selectTab('basic');
 const keys = ['AC', '⌫', '%', '÷', '7', '8', '9', '×', '4', '5', '6', '−', '1', '2', '3', '+', '±', '0', '.', '='];
 const operations = ['+', '−', '×', '÷'];
 const keyNames = { AC: '모두 지우기', '⌫': '한 자리 지우기', '±': '부호 바꾸기', '%': '퍼센트' };
+// 연산 기호는 글꼴마다 위아래 위치가 달라서 그림으로 그려 가운데를 맞춘다.
+const symbolPaths = { '÷': 'M5 12h14', '×': 'M6.5 6.5l11 11M17.5 6.5l-11 11', '−': 'M5 12h14',
+  '+': 'M5 12h14M12 5v14', '=': 'M5 9h14M5 15h14' };
+const symbol = key => '<svg class="key-symbol" viewBox="0 0 24 24" aria-hidden="true"><path d="' + symbolPaths[key] + '"/>' +
+  (key === '÷' ? '<circle cx="12" cy="6" r="2"/><circle cx="12" cy="18" r="2"/>' : '') + '</svg>';
 byId('keys').innerHTML = keys.map(key => {
   const kind = key === '=' ? 'equals' : operations.includes(key) ? 'operator' : keyNames[key] ? 'utility' : '';
-  return '<button type="button" class="key ' + kind + '" data-key="' + key + '" aria-label="' + (keyNames[key] || key) + '">' + key + '</button>';
+  return '<button type="button" class="key ' + kind + '" data-key="' + key + '" aria-label="' + (keyNames[key] || key) + '">' + (symbolPaths[key] ? symbol(key) : key) + '</button>';
 }).join('');
 let entry = '0';
 let terms = [];

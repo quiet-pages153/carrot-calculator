@@ -1,7 +1,7 @@
 const APP = 'carrot-calculator';
-const CACHE = APP + '-v14';
+const CACHE = APP + '-v15';
 const FILES = ['./', './index.html', './app.css', './app.js', './property.js', './pwa.js', './manifest.webmanifest',
-  './assets/cafe-background.webp', './assets/cafe-header.webp', './assets/bunny.webp',
+  './assets/cafe-background.webp', './assets/cafe-header.webp', './assets/bunny.webp', './assets/jua.woff2',
   './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable-512.png', './assets/apple-touch-icon.png'];
 
 // 설치: HTTP 캐시를 건너뛰고 받는다. 다른 앱의 index.html이 올라와 있으면 설치하지 않는다(기존 버전 유지).

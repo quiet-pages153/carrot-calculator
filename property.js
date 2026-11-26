@@ -193,6 +193,14 @@ const propertyRules = (() => {
   let mode;
   picker.innerHTML = Object.entries(fields).map(([key, entry]) =>
     '<button type="button" data-property="' + key + '">' + entry.title + '</button>').join('');
+  const quick = byId('property-quick');
+  const quickButton = document.createElement('button');
+  quickButton.type = 'button';
+  quickButton.className = 'quick-button';
+  quickButton.dataset.property = 'quick';
+  quickButton.textContent = '빠른 계산';
+  byId('property').querySelector('h2').append(quickButton);
+  quickButton.addEventListener('click', () => selectProperty('quick'));
 
   function toggleField(id, visible) {
     const group = byId(id);
@@ -226,10 +234,14 @@ const propertyRules = (() => {
 
   function selectProperty(next) {
     mode = next;
+    [...picker.querySelectorAll('button'), quickButton].forEach(button => button.setAttribute('aria-pressed', String(button.dataset.property === mode)));
+    form.hidden = output.hidden = mode === 'quick';
+    quick.hidden = mode !== 'quick';
+    if (mode === 'quick') { window.showQuickProperty?.(); return; }
     const config = fields[mode];
     form.innerHTML = config.markup + '<button class="action full" type="submit">계산하기</button>';
     hint.textContent = config.hint;
-    picker.querySelectorAll('button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.property === mode)));
+    [...picker.querySelectorAll('button'), quickButton].forEach(button => button.setAttribute('aria-pressed', String(button.dataset.property === mode)));
     syncFields();
     clearResult();
   }
@@ -260,4 +272,201 @@ const propertyRules = (() => {
     }
   });
   selectProperty('transfer');
+})();
+
+// 질문형 한 화면: 쉬운 사실을 묻고, 세금 종류는 앱이 고른다.
+(() => {
+  const form = byId('property-quick-form');
+  const output = byId('property-quick-result');
+  const hint = byId('property-hint');
+  const basisDate = '2026.11.26 확인 기준';
+  const percent = value => number.format(value) + '%';
+  const state = {};
+
+  const questions = [
+    { id: 'deal', text: '무엇을 하세요?', choices: [['buy', '사요'], ['sell', '팔아요'], ['rent', '전·월세']] },
+    { id: 'kind', text: '어떤 부동산인가요?', choices: [['home', '아파트·\u200b주택'], ['officetel', '오피스텔'], ['commercial', '상가·건물']] },
+    { id: 'price', text: s => s.deal === 'buy' ? '얼마에 사요?' : '얼마에 팔아요?', money: true, when: s => s.deal !== 'rent' },
+    { id: 'deposit', text: '보증금은 얼마예요?', money: true, when: s => s.deal === 'rent' },
+    { id: 'monthly', text: '월세는 얼마예요?', sub: '전세면 비워 두세요', money: true, optional: true, when: s => s.deal === 'rent' },
+    { id: 'count', text: '이 집을 사면 우리 세대 집이 몇 채가 되나요?', sub: '세대 = 함께 사는 가족 (배우자는 따로 살아도 포함). 분양권·입주권, 주거용 오피스텔도 1채로 세요',
+      choices: [['1', '1채'], ['2', '2채'], ['3', '3채'], ['4', '4채 이상']], when: s => s.deal === 'buy' && s.kind === 'home' },
+    { id: 'area', text: '이 집이 조정대상지역에 있나요?', sub: '모르면 [모름]: 세금이 많은 쪽으로 계산하고 적은 쪽도 함께 보여 줘요',
+      choices: [['yes', '예'], ['no', '아니오'], ['unknown', '모름']], when: s => s.deal === 'buy' && s.kind === 'home' && ['2', '3'].includes(s.count) },
+    { id: 'size', text: '전용면적이 85㎡(약 25평) 이하인가요?', sub: '도시가 아닌 읍·면의 주택은 100㎡ 이하면 [예]', choices: [['within', '예'], ['above', '아니오']],
+      when: s => (s.deal === 'buy' && s.kind === 'home') || s.kind === 'officetel' },
+    { id: 'facilities', text: '전용 부엌·화장실·욕실이 모두 있나요?', choices: [['yes', '예'], ['no', '아니오']], when: s => s.kind === 'officetel' && s.size === 'within' },
+    { id: 'purchase', text: '얼마에 샀나요?', money: true, when: s => s.deal === 'sell' },
+    { id: 'holding', text: '가진 지 몇 년 됐나요?', sub: '꽉 찬 햇수 (예: 4년 8개월 → 4)', years: true, when: s => s.deal === 'sell' },
+    { id: 'owned', text: '팔 때 우리 세대 집은 몇 채인가요?', sub: '분양권·입주권, 주거용 오피스텔도 1채로 세요', choices: [['1', '이 집 1채뿐'], ['2', '2채 이상']], when: s => s.deal === 'sell' && s.kind === 'home' },
+    { id: 'residence', text: '그 집에 몇 년 살았나요?', sub: '안 살았으면 0', years: true, when: s => s.deal === 'sell' && s.kind === 'home' && s.owned === '1' },
+    { id: 'zone', text: '살 때 그곳이 조정대상지역이었나요?', sub: '2017년 8월 3일 이후에 산 경우만 해당. 그 전에 샀으면 [아니오]',
+      choices: [['yes', '예'], ['no', '아니오'], ['unknown', '모름']],
+      when: s => s.deal === 'sell' && s.kind === 'home' && s.owned === '1' && s.residence !== '' && s.residence !== undefined && Number(s.residence) < 2 },
+    { id: 'costs', text: '살 때·팔 때 쓴 돈이 있나요?', sub: '취득세, 중개보수, 법무사비, 확장·새시 공사비 등 (모르면 비워 두세요)', money: true, optional: true, when: s => s.deal === 'sell' },
+    { id: 'other', text: '올해 다른 부동산을 판 적 있나요?', choices: [['no', '없어요'], ['yes', '있어요']], when: s => s.deal === 'sell' }
+  ];
+
+  form.innerHTML = questions.map(q => {
+    let control;
+    if (q.choices) control = '<div class="pq-choices" style="grid-template-columns:repeat(' + (q.choices.length === 4 ? 2 : q.choices.length) + ',minmax(0,1fr))">' + q.choices.map(([value, label]) =>
+      '<button type="button" data-q="' + q.id + '" data-v="' + value + '" aria-pressed="false">' + label + '</button>').join('') + '</div>';
+    else if (q.money) control = '<input name="' + q.id + '" data-money inputmode="numeric" placeholder="' + (q.optional ? '0' : '') + '"><span class="amount-name"></span>';
+    else control = '<input name="' + q.id + '" type="number" inputmode="numeric" min="0" max="120" step="1">';
+    return '<div class="pq full" data-pq="' + q.id + '" hidden><p class="pq-text"></p>' +
+      (q.sub ? '<p class="pq-sub">' + q.sub + '</p>' : '') + control + '</div>';
+  }).join('');
+  const quickHint = '개인 단독명의 기준 예상액이에요. 감면·특례, 일시적 2주택, 공동명의, 지분 거래는 계산하지 않아요. 큰 거래 전에는 세무사·중개사에게 확인하세요.';
+
+  const value = id => questions.find(q => q.id === id).money ? Number((state[id] || '').replaceAll(',', '')) : state[id];
+  const answered = q => q.optional || (q.choices ? !!state[q.id] : q.money ? value(q.id) > 0 : state[q.id] !== undefined && state[q.id] !== '');
+
+  function visibleQuestions() {
+    const list = [];
+    for (const q of questions) {
+      if (q.when && !q.when(state)) continue;
+      list.push(q);
+      if (!answered(q)) break;
+    }
+    return list;
+  }
+
+  function sync() {
+    const shown = visibleQuestions();
+    questions.forEach(q => {
+      const block = form.querySelector('[data-pq="' + q.id + '"]');
+      const visible = shown.includes(q);
+      block.hidden = !visible;
+      if (visible) block.querySelector('.pq-text').textContent = typeof q.text === 'function' ? q.text(state) : q.text;
+    });
+    render(shown.every(answered) && shown.at(-1) === questions.filter(q => !q.when || q.when(state)).at(-1));
+  }
+
+  form.addEventListener('click', event => {
+    const button = event.target.closest('[data-q]');
+    if (!button) return;
+    const id = button.dataset.q;
+    if (['deal', 'kind'].includes(id) && state[id] !== button.dataset.v) {
+      questions.slice(questions.findIndex(q => q.id === id) + 1).forEach(q => {
+        delete state[q.id];
+        form.querySelectorAll('[data-q="' + q.id + '"]').forEach(item => item.setAttribute('aria-pressed', 'false'));
+        if (form.elements[q.id]) form.elements[q.id].value = '';
+      });
+    }
+    state[id] = button.dataset.v;
+    form.querySelectorAll('[data-q="' + button.dataset.q + '"]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    sync();
+  });
+  form.addEventListener('input', event => {
+    if (!event.target.name) return;
+    state[event.target.name] = event.target.value;
+    sync();
+  });
+  form.addEventListener('submit', event => event.preventDefault());
+
+  const row = (label, amount) => [label, won(amount)];
+  const box = (title, amount, lines, extra = '') => '<section class="pr-box"><h3>' + title + '</h3><p class="property-amount">' + won(amount) + '</p>' +
+    (lines.length ? '<details><summary>자세히</summary>' + stats(lines) + '</details>' : '') + extra + '</section>';
+  const warn = text => '<p class="pr-warn">' + text + '</p>';
+  const info = text => '<p class="pr-info">' + text + '</p>';
+
+  function acquisitionKind() {
+    if (state.kind !== 'home') return { kind: 'commercial' };
+    const count = Number(state.count);
+    if (count === 1) return { kind: 'standard' };
+    if (count >= 4) return { kind: '12' };
+    const high = count === 2 ? '8' : '12';
+    const low = count === 2 ? 'standard' : '8';
+    if (state.area === 'yes') return { kind: high };
+    if (state.area === 'no') return { kind: low };
+    return { kind: high, alternative: low };
+  }
+
+  function brokerageFee() {
+    const kind = state.kind === 'home' ? 'home' : state.kind === 'officetel' && state.size === 'within' && state.facilities === 'yes' ? 'officetel' : 'other';
+    if (state.deal === 'rent') {
+      const rent = value('monthly');
+      return propertyRules.brokerage({ kind, deal: rent > 0 ? 'monthly' : 'lease', amount: value('deposit'), rent });
+    }
+    return propertyRules.brokerage({ kind, deal: 'sale', amount: value('price'), rent: 0 });
+  }
+
+  function render(complete) {
+    delete reports.property;
+    if (!complete) { output.innerHTML = state.deal ? '<p class="pr-wait">위 질문에 답하면 결과가 바로 나와요.</p>' : ''; return; }
+    try {
+      const fee = brokerageFee();
+      const feeLines = [['요율 적용 금액', won(fee.basis)], ['상한요율', percent(fee.rate)]];
+      if (fee.ceiling !== Infinity) feeLines.push(['한도', won(fee.ceiling)]);
+      const feeBox = box('중개보수 (내 쪽 상한)', fee.maximum, feeLines, info('부가세 별도 · 이 금액 안에서 중개사와 협의해요'));
+      let html = '';
+      let summary = [];
+      if (state.deal === 'rent') {
+        html = feeBox;
+        summary = [row('중개보수 상한', fee.maximum)];
+      } else if (state.deal === 'buy') {
+        const price = value('price');
+        const choice = acquisitionKind();
+        const tax = propertyRules.acquisition({ kind: choice.kind, amount: price, size: state.size || 'above' });
+        let notes = '';
+        if (choice.alternative) {
+          const low = propertyRules.acquisition({ kind: choice.alternative, amount: price, size: state.size || 'above' });
+          notes += warn('조정대상지역이 아니면 ' + won(low.total) + '이에요. 확인해 보세요.');
+        }
+        if (state.kind === 'home' && Number(state.count) >= 2) notes += info('이사 때문에 잠깐 2채가 되는 일시적 2주택, 공시가격이 낮은 주택(1억 원 이하 등)은 세금이 더 낮을 수 있어요. 주택 수 판단이 애매하면 구청 세무과에 확인하세요.');
+        html = '<section class="pr-total"><h3>사는 데 드는 돈</h3><p class="property-amount">' + won(price + tax.total + fee.maximum) + '</p><p class="pr-sub">집값 + 취득세 + 중개보수 상한 (부가세 별도)</p></section>' +
+          box('취득세 합계', tax.total, [['적용 세율', percent(tax.rate)], row('취득세', tax.tax), row('지방교육세', tax.education), row('농어촌특별세', tax.rural)], notes) + feeBox;
+        summary = [row('사는 데 드는 돈', price + tax.total + fee.maximum), row('취득세 합계', tax.total), ['적용 세율', percent(tax.rate)], row('중개보수 상한', fee.maximum)];
+      } else {
+        const sale = value('price');
+        const purchase = value('purchase');
+        const holding = Number(state.holding);
+        let taxBox;
+        let taxTotal = null;
+        const multi = state.kind === 'home' && state.owned === '2';
+        if (holding < 2 || multi) {
+          taxBox = '<section class="pr-box"><h3>양도소득세</h3>' + warn(holding < 2 ? '2년 미만 보유는 세율이 달라(60~70% 등) 이 앱에서 계산하지 않아요. 세무사에게 확인하세요.' :
+            '집이 2채 이상이면 조정대상지역 집은 다주택 중과(세율 +20~30%p, 장기보유 공제 없음)가 적용될 수 있어 이 앱에서 계산하지 않아요. 세무사에게 확인하세요.') + '</section>';
+        } else {
+          const residence = state.kind === 'home' && state.owned === '1' ? Number(state.residence) : 0;
+          if (residence > holding) throw new Error('살았던 햇수가 가진 햇수보다 길 수 없어요. 햇수를 확인해 주세요.');
+          const single = state.kind === 'home' && state.owned === '1';
+          const qualified = single && (residence >= 2 || state.zone === 'no');
+          const data = { kind: qualified ? 'qualified' : 'standard', sale, purchase, costs: value('costs'), holding, residence,
+            allowance: state.other === 'yes' ? 0 : 2500000 };
+          const tax = propertyRules.transfer(data);
+          taxTotal = tax.total;
+          let notes = '';
+          if (qualified && sale <= 1200000000) notes += info('1세대 1주택 비과세예요 (12억 원 이하).');
+          else if (qualified) notes += info('1세대 1주택 비과세 · 판 가격 중 12억 원을 넘는 비율만큼의 차익에만 세금이 붙어요.');
+          if (single && residence < 2 && state.zone === 'yes') notes += info('조정대상지역에서 산 집은 2년 이상 살아야 비과세라, 기본세율로 계산했어요.');
+          if (single && residence < 2 && state.zone === 'unknown') {
+            const alt = propertyRules.transfer({ ...data, kind: 'qualified' });
+            notes += warn('살 때 조정대상지역이 아니었다면 비과세가 되어 ' + won(alt.total) + '이에요. 확인해 보세요.');
+          }
+          if (state.kind === 'officetel') notes += info('주거용으로 쓰는 오피스텔은 주택으로 봐요. 그렇다면 [아파트·주택]으로 계산하세요.');
+          if (state.other === 'yes') notes += info('올해 기본공제(250만 원)를 이미 썼다고 보고 계산했어요. 여러 건은 합쳐서 다시 정산해요.');
+          taxBox = box('양도소득세 합계', tax.total, [row('양도차익', tax.gain), row('세금 붙는 차익', tax.taxableGain),
+            ['장기보유 공제 (' + percent(tax.deductionRate) + ')', won(tax.deduction)], row('기본공제', tax.usedAllowance),
+            row('세금 매기는 금액', tax.base), row('양도소득세', tax.national), row('지방소득세', tax.local)], notes);
+        }
+        const net = sale - (taxTotal ?? 0) - fee.maximum;
+        html = '<section class="pr-total"><h3>손에 남는 돈</h3><p class="property-amount">' + won(net) + '</p><p class="pr-sub">' + (taxTotal === null ? '판 가격 − 중개보수 상한 (양도세 빠짐, 대출 갚기 전)' : '판 가격 − 양도세 − 중개보수 상한 (대출 갚기 전, 부가세 별도)') + '</p></section>' + taxBox + feeBox;
+        summary = [row('손에 남는 돈', net), taxTotal === null ? ['양도소득세', '계산 안 함 (세무사 확인)'] : row('양도소득세 합계', taxTotal), row('중개보수 상한', fee.maximum)];
+      }
+      output.innerHTML = html;
+      const details = [['요율 확인 기준일', basisDate]];
+      questions.forEach(q => {
+        if (q.when && !q.when(state)) return;
+        const text = typeof q.text === 'function' ? q.text(state) : q.text;
+        const answer = q.choices ? q.choices.find(([v]) => v === state[q.id])?.[1] : q.money ? won(value(q.id)) : state[q.id] + '년';
+        details.push([text, answer]);
+      });
+      reports.property = { title: '부동산 계산서', details: stats(details), summary: stats(summary), note: quickHint };
+    } catch (error) {
+      output.innerHTML = '<p class="pr-warn">' + error.message + '</p>';
+    }
+  }
+
+  window.showQuickProperty = () => { hint.textContent = quickHint; sync(); };
 })();
