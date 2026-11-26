@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="app-id" content="carrot-calculator">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7d6ac">
+<meta name="apple-mobile-web-app-title" content="캐롯계산기">
+<title>당근 카페 계산기</title>
+<link rel="manifest" href="manifest.webmanifest?v=2">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png?v=2">
+<link rel="stylesheet" href="app.css">
+<script src="app.js" defer></script>
+<script src="property.js" defer></script>
+<script src="pwa.js" defer></script>
+</head>
+<body>
+<main id="app">
+  <header class="hero">
+    <img class="bunny" src="assets/bunny.webp" alt="">
+    <button class="print-button" id="print-open" aria-label="A4 인쇄 메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8V3h12v5M6 17H3V9h18v8h-3M6 14h12v7H6zM16 11h2"/></svg><span>A4</span></button>
+    <h1 class="sr-only">당근 카페 계산기</h1>
+  </header>
+  <section id="basic" class="screen basic" aria-label="기본 계산기">
+    <div class="display">
+      <span class="carrot" aria-hidden="true">🥕</span>
+      <div><div id="expression" class="expression"></div><output id="number" aria-live="polite">0</output></div>
+    </div>
+    <div class="keys" id="keys" aria-label="계산기 키패드"></div>
+    <details class="history" id="history"><summary>최근 계산</summary><div id="history-items"></div></details>
+  </section>
+  <section id="loan" class="screen card" aria-label="대출 계산기" hidden>
+    <h2>대출 계산기</h2>
+    <form id="loan-form">
+      <label class="full">대출금 (원)<input name="amount" data-money inputmode="numeric" required value="100,000,000"><span class="amount-name"></span></label>
+      <label>연이율 (%)<input name="rate" type="number" min="0" max="100" step="any" required value="4"></label>
+      <label>상환 방식<select name="method"><option value="payment">원리금균등</option><option value="principal">원금균등</option><option value="balloon">만기일시상환</option></select></label>
+      <div class="full loan-period">
+        <label>상환기간<input name="duration" type="number" inputmode="numeric" min="1" max="50" step="1" required value="30"></label>
+        <label>단위<select name="unit"><option value="12">년</option><option value="1">개월</option></select></label>
+      </div>
+      <button type="submit" class="action full">대출 계산하기</button>
+    </form>
+    <div id="loan-result" class="result" aria-live="polite"></div>
+  </section>
+  <section id="installment" class="screen card" aria-label="할부 계산기" hidden>
+    <h2>할부 계산기</h2>
+    <form id="installment-form">
+      <label class="full">결제금액 (원)<input name="amount" data-money inputmode="numeric" required value="600,000"><span class="amount-name"></span></label>
+      <label>할부 개월<input name="months" type="number" min="1" max="120" step="1" required value="6"></label>
+      <label>연 할부 수수료율 (%)<input name="rate" type="number" min="0" max="100" step="any" required value="0"></label>
+      <button type="submit" class="action full">할부 계산하기</button>
+    </form>
+    <p class="note">0%는 무이자예요. 매달 같은 원금에 남은 잔액의 월 수수료를 더해요. 카드사 청구액은 약정에 따라 달라질 수 있어요.</p>
+    <div id="installment-result" class="result" aria-live="polite"></div>
+  </section>
+  <section id="life" class="screen card" aria-label="생활 계산기" hidden>
+    <h2>생활 계산기</h2>
+    <div class="life-tabs" id="life-tabs"></div>
+    <form id="life-form"></form>
+    <div id="life-result" class="result" aria-live="polite"></div>
+  </section>
+  <section id="property" class="screen card" aria-label="부동산 계산기" hidden>
+    <h2>부동산 계산기</h2>
+    <div class="life-tabs property-tabs" id="property-options" aria-label="부동산 계산 항목"></div>
+    <form id="property-form"></form>
+    <div id="property-result" class="result" aria-live="polite"></div>
+    <p id="property-hint" class="note"></p>
+    <details class="property-sources">
+      <summary>요율 기준 · 2026.11.26 확인</summary>
+      <ul>
+        <li><a href="https://d.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7711&amp;mi=2312">국세청 양도소득세율</a></li>
+        <li><a href="https://www.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=7709&amp;mi=2310">국세청 양도소득세 계산 흐름</a></li>
+        <li><a href="https://i.nts.go.kr/nts/cm/cntnts/cntntsView.do?cntntsId=8799">국세청 1주택 고가주택 계산 예시</a></li>
+        <li><a href="https://etax.seoul.go.kr/jsp/AcqutaxCalcAction.view?gnb_id=0610">지방세 취득세율 및 부가세</a></li>
+        <li><a href="https://seogu.go.kr/kor/sub01_03_04_01.do">대전 서구 중개보수 요율표</a></li>
+        <li><a href="https://www.law.go.kr/LSW/lumLsLinkPop.do?lspttninfSeq=106773">공인중개사법 시행규칙 제20조</a></li>
+      </ul>
+      <p>계산은 오프라인으로 작동해요. 요율 확인은 인터넷 연결이 필요해요.</p>
+    </details>
+  </section>
+  <nav aria-label="계산기 전환" id="tabs"></nav>
+</main>
+<dialog id="print-dialog">
+  <form method="dialog">
+    <h2>A4 인쇄 / PDF 저장</h2>
+    <p id="print-description"></p>
+    <label id="print-detail"><input id="include-rows" type="checkbox"> 월별 전체 내역 포함</label>
+    <div class="dialog-buttons"><button value="cancel">닫기</button><button class="action" value="print">인쇄 / PDF 저장</button></div>
+  </form>
+</dialog>
+<article id="print-report" aria-hidden="true"></article>
+</body>
+</html>
