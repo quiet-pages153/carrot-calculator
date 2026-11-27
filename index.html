@@ -84,9 +84,11 @@
 </main>
 <dialog id="print-dialog">
   <form method="dialog">
-    <h2>A4 인쇄 / PDF 저장</h2>
+    <h2>계산서 인쇄 · 저장</h2>
     <p id="print-description"></p>
     <label id="print-detail"><input id="include-rows" type="checkbox"> 월별 전체 내역 포함</label>
+    <div class="image-buttons"><button type="button" id="save-image">이미지로 저장</button><button type="button" id="share-image">공유</button></div>
+    <p id="image-status" class="note" aria-live="polite"></p>
     <div class="dialog-buttons"><button value="cancel">닫기</button><button class="action" value="print">인쇄 / PDF 저장</button></div>
   </form>
 </dialog>

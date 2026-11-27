@@ -2,8 +2,8 @@
 // 설치·업데이트·안내. 버전과 안내 문구는 조립.ps1이 채운다.
 (() => {
   const APP = 'carrot-calculator';
-  const APP_V = '17';
-  const NOTE = ["A4 인쇄물을 공식 서류 형식(계산 조건·계산 결과·유의사항)으로 바꿨어요.","부동산 계산서는 질문 대신 공식 용어(거래 구분, 취득가액, 과세표준 등)로 정리돼요."];
+  const APP_V = '18';
+  const NOTE = ["인쇄 창에 [이미지로 저장]과 [공유]가 생겼어요. 계산서를 폰용 그림으로 저장하거나 카톡 등으로 바로 보낼 수 있어요."];
   const KEY = APP + '-';
   const web = ['http:', 'https:'].includes(location.protocol);
   const store = {

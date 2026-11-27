@@ -180,3 +180,9 @@ button,summary,a{-webkit-tap-highlight-color:transparent}
 }@media print{#print-report th:first-child,#print-report td:first-child{text-align:center}}
 @media print{#print-report .stats dt,#print-report .stats dd{padding:1.5mm 3mm}#print-report .doc-section{margin-bottom:6mm}#print-report .doc-head{margin-bottom:6mm}#print-report .stats{font-size:10pt}#print-report .doc-result .stats dt:first-of-type,#print-report .doc-result .stats dd:first-of-type{padding:2.2mm 3mm}}
 @media print{#print-report .stats dt,#print-report .stats dd{padding:1.2mm 3mm}#print-report th,#print-report td{padding:1.1mm 2mm}#print-report .doc-notice{padding:2.5mm 4mm}#print-report .doc-foot{margin-top:4mm}}
+
+.image-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.image-buttons button{min-height:44px;border:1px solid #cda681;border-radius:12px;background:#fff2de;font-size:15px;font-family:'Jua',system-ui,sans-serif}
+.image-buttons button:disabled{opacity:.45}
+#image-status:empty{display:none}
+.image-buttons:has(#share-image[hidden]){grid-template-columns:1fr}

@@ -522,3 +522,137 @@ window.addEventListener('beforeprint', () => {
   if (report) makeReport(report, false);
 });
 window.addEventListener('afterprint', () => { printing = false; });
+
+// 폰용 계산서 이미지: 계산서 내용을 폰 화면 비율로 다시 그려 PNG로 저장·공유한다 (인터넷 필요 없음).
+function reportRows(html) {
+  const box = document.createElement('div');
+  box.innerHTML = html || '';
+  const rows = [];
+  box.querySelectorAll('dl').forEach(list => list.querySelectorAll('dt').forEach(term => rows.push([term.textContent.trim(), term.nextElementSibling?.textContent.trim() ?? ''])));
+  const heads = [...box.querySelectorAll('thead th')].map(cell => cell.textContent.trim());
+  box.querySelectorAll('tbody tr').forEach(tr => {
+    const cells = [...tr.children].map(cell => cell.textContent.trim());
+    rows.push([cells[0], cells.slice(1).map((cell, i) => (heads[i + 1] ? heads[i + 1] + ' ' : '') + cell).join(' · ')]);
+  });
+  return rows;
+}
+function drawReportImage(item) {
+  const W = 1080, pad = 64, labelW = 500;
+  const font = (size, weight = 400) => weight + ' ' + size + 'px "Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif';
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = (text, width, size, weight) => {
+    ctx.font = font(size, weight);
+    // 띄어쓰기 단위로 줄을 바꾸고, 한 단어가 너무 길 때만 글자 단위로 자른다.
+    const lines = [];
+    let line = '';
+    for (const word of String(text).split(' ')) {
+      const next = line ? line + ' ' + word : word;
+      if (ctx.measureText(next).width <= width) { line = next; continue; }
+      if (line) lines.push(line);
+      line = '';
+      for (const char of word) {
+        if (ctx.measureText(line + char).width > width && line) { lines.push(line); line = char; } else line += char;
+      }
+    }
+    lines.push(line);
+    return lines;
+  };
+  const now = new Date();
+  const date = now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.';
+  const sections = [['계산 조건', reportRows(item.details), false], ['계산 결과', reportRows(item.summary), true]];
+  if (item.comparison) sections.push(['상환 방식 비교', reportRows(item.comparison), false]);
+  const notes = [item.note ? formal(item.note) : '', '이 확인서는 입력한 조건으로 계산한 예상액이며 법적 효력이 없습니다.',
+    item.rows ? '월별 상환 내역은 A4 인쇄에서 볼 수 있습니다.' : ''].filter(Boolean);
+  // 한 번은 높이만 재고, 한 번은 실제로 그린다.
+  const paint = draw => {
+    let y = pad;
+    const text = (value, x, top, size, weight, color = '#111', align = 'left') => {
+      if (!draw) return;
+      ctx.font = font(size, weight); ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = 'top';
+      ctx.fillText(value, x, top);
+    };
+    const rect = (x, top, w, h, color) => { if (draw) { ctx.fillStyle = color; ctx.fillRect(x, top, w, h); } };
+    text('계산 결과 확인서', pad, y, 28, 400, '#666'); y += 46;
+    for (const line of wrap(item.title, W - pad * 2, 56, 800)) { text(line, pad, y, 56, 800); y += 70; }
+    text('작성일 ' + date + (item.basis ? '   요율 기준 ' + item.basis : ''), pad, y + 4, 28, 400, '#444'); y += 52;
+    rect(pad, y, W - pad * 2, 5, '#111'); y += 44;
+    sections.forEach(([title, rows, highlight], index) => {
+      rect(pad, y + 4, 7, 38, '#111');
+      text((index + 1) + '. ' + title, pad + 22, y, 38, 800); y += 62;
+      rect(pad, y, W - pad * 2, 3, '#111');
+      rows.forEach(([label, value], rowIndex) => {
+        const strong = highlight && rowIndex === 0;
+        const size = strong ? 38 : 32;
+        const labelLines = wrap(label, labelW - 40, size, 600);
+        const valueLines = wrap(value, W - pad * 2 - labelW - 40, size, 700);
+        const h = Math.max(labelLines.length, valueLines.length) * (size + 12) + 32;
+        rect(pad, y, W - pad * 2, h, strong ? '#e6e6e6' : '#fff');
+        rect(pad, y, labelW, h, strong ? '#e6e6e6' : '#f3f3f3');
+        labelLines.forEach((line, i) => text(line, pad + 20, y + 16 + i * (size + 12), size, strong ? 800 : 600, '#222'));
+        valueLines.forEach((line, i) => text(line, W - pad - 20, y + 16 + i * (size + 12), size, strong ? 800 : 700, '#111', 'right'));
+        y += h;
+        rect(pad, y - 2, W - pad * 2, 2, strong ? '#111' : '#d0d0d0');
+      });
+      rect(pad, y, W - pad * 2, 3, '#111');
+      y += 56;
+    });
+    const noteLines = notes.flatMap(note => wrap(note, W - pad * 2 - 56, 28, 400));
+    const boxH = 80 + noteLines.length * 42;
+    if (draw) { ctx.strokeStyle = '#999'; ctx.lineWidth = 2; ctx.strokeRect(pad, y, W - pad * 2, boxH); }
+    text('유의사항', pad + 28, y + 24, 30, 800);
+    noteLines.forEach((line, i) => text(line, pad + 28, y + 70 + i * 42, 28, 400, '#333'));
+    y += boxH + 36;
+    text('캐롯계산기 · ' + date + ' 작성', W - pad, y, 26, 400, '#777', 'right');
+    return y + 26 + pad;
+  };
+  const height = paint(false);
+  canvas.width = W;
+  canvas.height = height;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, height);
+  paint(true);
+  return canvas;
+}
+async function reportImageFile() {
+  const item = currentReport();
+  if (!item) throw new Error('먼저 계산해 주세요.');
+  const canvas = drawReportImage(item);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const now = new Date();
+  const stamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') +
+    '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+  return new File([blob], 'carrot-report-' + stamp + '.png', { type: 'image/png' });
+}
+const imageStatus = byId('image-status');
+const canShareFiles = (() => {
+  try { return !!navigator.canShare?.({ files: [new File([''], 'a.png', { type: 'image/png' })] }); } catch { return false; }
+})();
+byId('share-image').hidden = !canShareFiles;
+byId('print-open').addEventListener('click', () => {
+  imageStatus.textContent = '';
+  const ready = !!currentReport();
+  byId('save-image').disabled = byId('share-image').disabled = !ready;
+});
+byId('save-image').addEventListener('click', async () => {
+  try {
+    const file = await reportImageFile();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = file.name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+    imageStatus.textContent = '다운로드 폴더에 저장했어요. 갤러리에서도 볼 수 있어요.';
+  } catch (error) { imageStatus.textContent = error.message; }
+});
+byId('share-image').addEventListener('click', async () => {
+  try {
+    const file = await reportImageFile();
+    await navigator.share({ files: [file], title: currentReport().title });
+    imageStatus.textContent = '';
+  } catch (error) {
+    if (error.name !== 'AbortError') imageStatus.textContent = '공유하지 못했어요. [이미지로 저장]을 써 주세요.';
+  }
+});
