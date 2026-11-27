@@ -186,3 +186,25 @@ button,summary,a{-webkit-tap-highlight-color:transparent}
 .image-buttons button:disabled{opacity:.45}
 #image-status:empty{display:none}
 .image-buttons:has(#share-image[hidden]){grid-template-columns:1fr}
+
+/* v19: 계산서 색과 금액 등급 (흑백 인쇄에서도 진하기로 구분됨) */
+@media print{
+  #print-report{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print-report .doc-head{border-bottom-color:#4b2817}
+  #print-report .doc-kind{color:#b5531a!important}
+  #print-report h2{border-left-color:#d4691f}
+  #print-report .doc-key{display:grid;gap:3mm;margin:0 0 7mm;padding:4mm 5mm;border:1.2pt solid #d4691f;border-radius:3mm;background:#fff4e8;break-inside:avoid}
+  #print-report .doc-key p{margin:0;font-size:9pt;color:#6b4a35!important}
+  #print-report .doc-key-main strong{display:block;font-size:22pt;font-weight:800!important;color:#b5531a!important;line-height:1.25}
+  #print-report .doc-key-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:3mm;padding-top:3mm;border-top:.6pt solid #e7b58c}
+  #print-report .doc-key-list strong{display:block;font-size:12.5pt;font-weight:800!important}
+  #print-report .doc-result .stats dt.g-main,#print-report .doc-result .stats dd.g-main{background:#fbe2c9!important;font-size:12.5pt;font-weight:800!important}
+  #print-report .doc-result .stats dd.g-main{color:#b5531a!important}
+  #print-report .doc-result .stats dt.g-key,#print-report .doc-result .stats dd.g-key{background:#fff4e8!important;font-weight:800!important}
+  #print-report .doc-result .stats dt.g-detail{background:#f6f6f6;font-weight:500!important;color:#444!important;padding-left:7mm}
+  #print-report .doc-result .stats dd.g-detail{font-weight:500!important;color:#444!important}
+}
+@media print{#print-report .doc-section:not(.doc-result):not(.print-detail) .stats{grid-template-columns:34mm 1fr 34mm 1fr}#print-report .doc-section:not(.doc-result) .stats dd{border-right:.4pt solid #c8c8c8}#print-report .doc-key{padding:3mm 5mm;margin-bottom:6mm}}
+@page{margin:11mm 13mm}
+@media print{#print-report .doc-section:not(.doc-result):not(.print-detail) .stats{grid-template-columns:42mm 1fr 42mm 1fr}#print-report .doc-key-main strong{font-size:19pt}#print-report .doc-key{gap:2mm}#print-report .doc-key-list{padding-top:2mm}#print-report .doc-head{padding-bottom:3mm;margin-bottom:5mm}#print-report .doc-section{margin-bottom:5mm}#print-report .doc-notice{font-size:8.5pt}}
+@media print{#print-report .stats dt,#print-report .stats dd{padding:1mm 3mm}#print-report .doc-foot{margin-top:2.5mm;padding-top:1.5mm;break-before:avoid}}

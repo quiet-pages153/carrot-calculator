@@ -475,6 +475,23 @@ byId('print-open').addEventListener('click', () => {
 // 계산서는 공문서 말투(~합니다)로 바꿔 싣는다.
 const formal = text => [['이에요', '입니다'], ['예요', '입니다'], ['돼요', '됩니다'], ['있어요', '있습니다'], ['않아요', '않습니다'], ['했어요', '했습니다'], ['하세요', '하십시오'], ['해요', '합니다']]
   .reduce((result, [from, to]) => result.replaceAll(from, to), text);
+// 계산 결과의 금액 등급: 첫 줄은 핵심(main), 합계·상한·총액은 주요(key), 나머지는 계산 과정(detail).
+const keyLabel = label => /합계|상한|^총|아닌 경우/.test(label);
+function gradeRows(rows) {
+  return rows.map(([label, value], index) => [label, value, index === 0 ? 'main' : keyLabel(label) ? 'key' : 'detail']);
+}
+function gradedStats(html) {
+  const rows = gradeRows(reportRows(html));
+  return '<dl class="stats">' + rows.map(([label, value, grade]) => '<dt class="g-' + grade + '">' + label + '</dt><dd class="g-' + grade + '">' + value + '</dd>').join('') + '</dl>';
+}
+function keyBox(html) {
+  const rows = gradeRows(reportRows(html));
+  if (!rows.length) return '';
+  const [label, value] = rows[0];
+  const keys = rows.filter(row => row[2] === 'key').slice(0, 3);
+  return '<section class="doc-key"><div class="doc-key-main"><p>' + label + '</p><strong>' + value + '</strong></div>' +
+    (keys.length ? '<div class="doc-key-list">' + keys.map(([l, v]) => '<div><p>' + l + '</p><strong>' + v + '</strong></div>').join('') + '</div>' : '') + '</section>';
+}
 function makeReport(item, includeRows) {
   const report = byId('print-report');
   const now = new Date();
@@ -483,7 +500,7 @@ function makeReport(item, includeRows) {
   const section = (title, body, extra = '') => '<section class="doc-section ' + extra + '"><h2>' + (++number) + '. ' + title + '</h2>' + body + '</section>';
   report.innerHTML = '<header class="doc-head"><div><p class="doc-kind">계산 결과 확인서</p><h1>' + item.title + '</h1></div>' +
     '<dl class="doc-meta"><dt>작성일</dt><dd>' + date + '</dd>' + (item.basis ? '<dt>요율 기준</dt><dd>' + item.basis + '</dd>' : '') + '</dl></header>' +
-    section('계산 조건', item.details) + section('계산 결과', item.summary, 'doc-result') +
+    keyBox(item.summary) + section('계산 조건', item.details) + section('계산 결과', gradedStats(item.summary), 'doc-result') +
     (item.comparison ? section('상환 방식 비교', item.comparison) : '') +
     '<section class="doc-notice"><h2>유의사항</h2>' + (item.note ? '<p>' + formal(item.note) + '</p>' : '') +
     '<p>이 확인서는 입력한 조건으로 계산한 예상액이며 법적 효력이 없습니다. 실제 금액은 금융기관·관할 관청·중개사무소의 확인 결과에 따릅니다.</p></section>' +
@@ -560,7 +577,8 @@ function drawReportImage(item) {
   };
   const now = new Date();
   const date = now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.';
-  const sections = [['계산 조건', reportRows(item.details), false], ['계산 결과', reportRows(item.summary), true]];
+  const graded = gradeRows(reportRows(item.summary));
+  const sections = [['계산 조건', reportRows(item.details), false], ['계산 결과', graded, true]];
   if (item.comparison) sections.push(['상환 방식 비교', reportRows(item.comparison), false]);
   const notes = [item.note ? formal(item.note) : '', '이 확인서는 입력한 조건으로 계산한 예상액이며 법적 효력이 없습니다.',
     item.rows ? '월별 상환 내역은 A4 인쇄에서 볼 수 있습니다.' : ''].filter(Boolean);
@@ -573,24 +591,44 @@ function drawReportImage(item) {
       ctx.fillText(value, x, top);
     };
     const rect = (x, top, w, h, color) => { if (draw) { ctx.fillStyle = color; ctx.fillRect(x, top, w, h); } };
-    text('계산 결과 확인서', pad, y, 28, 400, '#666'); y += 46;
+    text('계산 결과 확인서', pad, y, 28, 400, '#b5531a'); y += 46;
     for (const line of wrap(item.title, W - pad * 2, 56, 800)) { text(line, pad, y, 56, 800); y += 70; }
     text('작성일 ' + date + (item.basis ? '   요율 기준 ' + item.basis : ''), pad, y + 4, 28, 400, '#444'); y += 52;
-    rect(pad, y, W - pad * 2, 5, '#111'); y += 44;
-    sections.forEach(([title, rows, highlight], index) => {
-      rect(pad, y + 4, 7, 38, '#111');
+    rect(pad, y, W - pad * 2, 5, '#4b2817'); y += 40;
+    // 핵심 금액 상자: 가장 중요한 금액을 크게, 주요 금액 최대 3개를 그 아래에.
+    if (graded.length) {
+      const [mainLabel, mainValue] = graded[0];
+      const keys = graded.filter(row => row[2] === 'key').slice(0, 3);
+      const boxTop = y;
+      const keyLines = keys.map(([l, v]) => [wrap(l, W - pad * 2 - 80, 28, 400), wrap(v, W - pad * 2 - 80, 40, 800)]);
+      const boxH = 48 + 40 + 84 + (keys.length ? 28 + keyLines.reduce((sum, [l, v]) => sum + l.length * 38 + v.length * 52 + 18, 0) : 0) + 16;
+      if (draw) { ctx.fillStyle = '#fff4e8'; ctx.strokeStyle = '#d4691f'; ctx.lineWidth = 4; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(pad, boxTop, W - pad * 2, boxH, 24); else ctx.rect(pad, boxTop, W - pad * 2, boxH); ctx.fill(); ctx.stroke(); }
+      y += 36;
+      text(mainLabel, pad + 40, y, 30, 600, '#6b4a35'); y += 48;
+      text(mainValue, pad + 40, y, 72, 800, '#b5531a'); y += 96;
+      if (keys.length) {
+        rect(pad + 40, y, W - pad * 2 - 80, 2, '#e7b58c'); y += 26;
+        keyLines.forEach(([labelLines, valueLines]) => {
+          labelLines.forEach(line => { text(line, pad + 40, y, 28, 400, '#6b4a35'); y += 38; });
+          valueLines.forEach(line => { text(line, pad + 40, y, 40, 800, '#2b1a10'); y += 52; });
+          y += 18;
+        });
+      }
+      y = boxTop + boxH + 48;
+    }    sections.forEach(([title, rows, highlight], index) => {
+      rect(pad, y + 4, 7, 38, '#d4691f');
       text((index + 1) + '. ' + title, pad + 22, y, 38, 800); y += 62;
       rect(pad, y, W - pad * 2, 3, '#111');
-      rows.forEach(([label, value], rowIndex) => {
-        const strong = highlight && rowIndex === 0;
+      rows.forEach(([label, value, grade]) => {
+        const strong = grade === 'main', key = grade === 'key', detail = grade === 'detail';
         const size = strong ? 38 : 32;
         const labelLines = wrap(label, labelW - 40, size, 600);
         const valueLines = wrap(value, W - pad * 2 - labelW - 40, size, 700);
         const h = Math.max(labelLines.length, valueLines.length) * (size + 12) + 32;
-        rect(pad, y, W - pad * 2, h, strong ? '#e6e6e6' : '#fff');
-        rect(pad, y, labelW, h, strong ? '#e6e6e6' : '#f3f3f3');
-        labelLines.forEach((line, i) => text(line, pad + 20, y + 16 + i * (size + 12), size, strong ? 800 : 600, '#222'));
-        valueLines.forEach((line, i) => text(line, W - pad - 20, y + 16 + i * (size + 12), size, strong ? 800 : 700, '#111', 'right'));
+        rect(pad, y, W - pad * 2, h, strong ? '#fbe2c9' : key ? '#fff4e8' : '#fff');
+        rect(pad, y, labelW, h, strong ? '#fbe2c9' : key ? '#fff4e8' : detail ? '#f6f6f6' : '#f3f3f3');
+        labelLines.forEach((line, i) => text(line, pad + (detail ? 44 : 20), y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 500 : 600, detail ? '#555' : '#222'));
+        valueLines.forEach((line, i) => text(line, W - pad - 20, y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 500 : 700, strong ? '#b5531a' : detail ? '#444' : '#111', 'right'));
         y += h;
         rect(pad, y - 2, W - pad * 2, 2, strong ? '#111' : '#d0d0d0');
       });
