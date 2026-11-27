@@ -579,7 +579,14 @@ function drawReportImage(item) {
   const date = now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.';
   const graded = gradeRows(reportRows(item.summary));
   const sections = [['계산 조건', reportRows(item.details), false], ['계산 결과', graded, true]];
-  if (item.comparison) sections.push(['상환 방식 비교', reportRows(item.comparison), false]);
+  // 상환 방식 비교는 한 칸에 몰지 않고 열을 나눈 표로 그린다.
+  const compare = (() => {
+    if (!item.comparison) return null;
+    const box = document.createElement('div');
+    box.innerHTML = item.comparison;
+    return { heads: [...box.querySelectorAll('thead th')].map(cell => cell.textContent.trim()),
+      rows: [...box.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(cell => cell.textContent.trim())) };
+  })();
   const notes = [item.note ? formal(item.note) : '', '이 확인서는 입력한 조건으로 계산한 예상액이며 법적 효력이 없습니다.',
     item.rows ? '월별 상환 내역은 A4 인쇄에서 볼 수 있습니다.' : ''].filter(Boolean);
   // 한 번은 높이만 재고, 한 번은 실제로 그린다.
@@ -635,6 +642,24 @@ function drawReportImage(item) {
       rect(pad, y, W - pad * 2, 3, '#111');
       y += 56;
     });
+    if (compare) {
+      const cols = [300, 326, 326];
+      const xs = [pad, pad + cols[0], pad + cols[0] + cols[1]];
+      rect(pad, y + 4, 7, 38, '#d4691f');
+      text((sections.length + 1) + '. 상환 방식 비교', pad + 22, y, 38, 800); y += 62;
+      rect(pad, y, W - pad * 2, 3, '#111');
+      rect(pad, y + 3, W - pad * 2, 62, '#f3f3f3');
+      compare.heads.forEach((head, i) => text(head, i ? xs[i] + cols[i] - 20 : xs[i] + 20, y + 18, 28, 700, '#222', i ? 'right' : 'left'));
+      y += 65;
+      rect(pad, y - 2, W - pad * 2, 2, '#111');
+      compare.rows.forEach(cells => {
+        cells.forEach((cell, i) => text(cell, i ? xs[i] + cols[i] - 20 : xs[i] + 20, y + 20, 32, i ? 700 : 600, '#111', i ? 'right' : 'left'));
+        y += 76;
+        rect(pad, y - 2, W - pad * 2, 2, '#d0d0d0');
+      });
+      rect(pad, y, W - pad * 2, 3, '#111');
+      y += 56;
+    }
     const noteLines = notes.flatMap(note => wrap(note, W - pad * 2 - 56, 28, 400));
     const boxH = 80 + noteLines.length * 42;
     if (draw) { ctx.strokeStyle = '#999'; ctx.lineWidth = 2; ctx.strokeRect(pad, y, W - pad * 2, boxH); }

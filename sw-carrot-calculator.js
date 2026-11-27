@@ -1,5 +1,5 @@
 const APP = 'carrot-calculator';
-const CACHE = APP + '-v20';
+const CACHE = APP + '-v21';
 const FILES = ['./', './index.html', './app.css', './app.js', './property.js', './pwa.js', './manifest.webmanifest',
   './assets/cafe-background.webp', './assets/cafe-header.webp', './assets/bunny.webp', './assets/jua.woff2',
   './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable-512.png', './assets/apple-touch-icon.png'];
