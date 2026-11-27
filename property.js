@@ -276,6 +276,9 @@ const propertyRules = (() => {
     }
   });
   selectProperty('transfer');
+  // 최근 계산(recent.js)에서 쓰는 창구
+  window.propertyMode = () => mode;
+  window.selectPropertyMode = selectProperty;
 })();
 
 // 질문형 한 화면: 쉬운 사실을 묻고, 세금 종류는 앱이 고른다.
@@ -375,6 +378,8 @@ const propertyRules = (() => {
   });
   form.addEventListener('input', event => {
     if (!event.target.name) return;
+    // '50만'처럼 쓴 금액은 숫자로 정리한 뒤 담는다 (한글 조합 중에는 건너뜀).
+    if (event.target.matches('[data-money]') && !event.isComposing) formatMoney(event.target);
     state[event.target.name] = event.target.value;
     sync();
   });
@@ -490,4 +495,19 @@ const propertyRules = (() => {
   }
 
   window.showQuickProperty = () => { hint.textContent = quickHint; sync(); };
+  window.quickState = () => ({ ...state });
+  window.restoreQuick = saved => {
+    if (window.propertyMode() !== 'quick') window.selectPropertyMode('quick');
+    for (const key of Object.keys(state)) delete state[key];
+    form.querySelectorAll('[aria-pressed]').forEach(item => item.setAttribute('aria-pressed', 'false'));
+    form.querySelectorAll('input').forEach(input => { input.value = ''; });
+    for (const q of questions) {
+      if (saved[q.id] === undefined) continue;
+      const button = form.querySelector('[data-q="' + q.id + '"][data-v="' + saved[q.id] + '"]');
+      if (button) { button.click(); continue; }
+      const input = form.elements[q.id];
+      input.value = saved[q.id];
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
 })();

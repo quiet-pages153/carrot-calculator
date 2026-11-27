@@ -12,13 +12,14 @@
 <link rel="stylesheet" href="app.css">
 <script src="app.js" defer></script>
 <script src="property.js" defer></script>
+<script src="recent.js" defer></script>
 <script src="pwa.js" defer></script>
 </head>
 <body>
 <main id="app">
   <header class="hero">
     <img class="bunny" src="assets/bunny.webp" alt="">
-    <button class="print-button" id="print-open" aria-label="A4 인쇄 메뉴"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8V3h12v5M6 17H3V9h18v8h-3M6 14h12v7H6zM16 11h2"/></svg><span>A4</span></button>
+    <div class="top-actions"><button type="button" id="share-open" aria-label="계산서 공유"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button><button type="button" id="print-open" aria-label="계산서 인쇄·저장"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg></button></div>
     <h1 class="sr-only">당근 카페 계산기</h1>
   </header>
   <section id="basic" class="screen basic" aria-label="기본 계산기">

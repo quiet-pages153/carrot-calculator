@@ -2,8 +2,8 @@
 // 설치·업데이트·안내. 버전과 안내 문구는 조립.ps1이 채운다.
 (() => {
   const APP = 'carrot-calculator';
-  const APP_V = '21';
-  const NOTE = ["계산서 이미지의 '상환 방식 비교'를 칸을 나눈 표로 바꿔 읽기 쉽게 했어요."];
+  const APP_V = '22';
+  const NOTE = ["위쪽에 공유·인쇄 버튼이 생겼어요. 공유를 누르면 계산서 그림을 바로 보낼 수 있어요.","대출·할부·생활·부동산 화면에도 [최근] 버튼이 생겼어요. 누르면 그때 입력값으로 다시 계산해요.","조명 위치를 옮기고 토끼를 조금 키웠어요."];
   const KEY = APP + '-';
   const web = ['http:', 'https:'].includes(location.protocol);
   const store = {

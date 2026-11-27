@@ -719,3 +719,22 @@ byId('share-image').addEventListener('click', async () => {
     if (error.name !== 'AbortError') imageStatus.textContent = '공유하지 못했어요. [이미지로 저장]을 써 주세요.';
   }
 });
+
+// 위쪽 공유 버튼: 계산서 이미지를 바로 공유(안 되는 기기는 이미지로 저장). 계산 전이면 인쇄 창의 안내를 보여 준다.
+byId('share-open').addEventListener('click', async () => {
+  const notYet = !currentReport() || (activeTab === 'basic' && (!finished || entry === '오류'));
+  if (notYet) { byId('print-open').click(); imageStatus.textContent = '먼저 계산해 주세요. 계산한 뒤 공유할 수 있어요.'; return; }
+  try {
+    const file = await reportImageFile();
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], title: currentReport().title }); return; }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = file.name;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+  } catch (error) {
+    if (error.name !== 'AbortError') { byId('print-open').click(); imageStatus.textContent = '공유하지 못했어요. [이미지로 저장]을 써 주세요.'; }
+  }
+});
