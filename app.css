@@ -137,3 +137,17 @@ dialog::backdrop{background:#3e220b75}
 @font-face{font-family:'Jua';src:url(assets/jua.woff2) format('woff2');font-display:swap}
 .key,.display,nav button,#tabs button,h2,.result h3,.pr-total h3,.pr-box h3,.property-amount,.pq-text,.pq-choices button,.quick-button,.life-tabs button,.history summary,.action{font-family:'Jua',system-ui,-apple-system,"Malgun Gothic",sans-serif;font-weight:400!important}
 .pq-choices button{word-break:keep-all}
+
+/* v16: 최근 계산 창, 누를 때 어두운 사각형 없애기, 인쇄 보강 */
+.basic{position:relative}
+.history{position:relative}
+.history[open] #history-items{position:absolute;left:0;right:0;bottom:calc(100% + 8px);z-index:5;max-height:min(60dvh,420px);overflow:auto;padding:10px;background:#fff8eb;border:2px solid #d9a679;border-radius:16px;box-shadow:0 10px 24px #6b3a1a55}
+#history-items button{font-size:16px;font-family:'Jua',system-ui,sans-serif;min-height:44px}
+.history summary{display:flex;align-items:center;justify-content:space-between;min-height:44px;list-style:none}
+.history summary::-webkit-details-marker{display:none}
+.history summary::after{content:'▲';font-size:12px;color:#9a6a45}
+.history[open] summary::after{content:'▼'}
+button,summary,a{-webkit-tap-highlight-color:transparent}
+.key:active,.key.is-pressed{filter:none;transform:translateY(3px);box-shadow:0 1px 0 #b57c55,inset 0 2px 4px #b5754a33}
+.key.equals:active,.key.equals.is-pressed{background:linear-gradient(#f9952f,#ee7414)}
+@media print{html,body{height:auto!important;overflow:visible!important;background:white!important}body:has(#print-report:empty) #app{display:block!important}}

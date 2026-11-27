@@ -87,10 +87,16 @@ function updateHistory() {
       finished = true;
       waiting = false;
       updateDisplay();
+      byId('history').open = false;
     });
     list.append(button);
   }
 }
+// 최근 계산은 키패드 위로 떠오르는 창: 스크롤 없이 보이고, 바깥을 누르면 닫힌다.
+document.addEventListener('pointerdown', event => {
+  const panel = byId('history');
+  if (panel.open && !panel.contains(event.target)) panel.open = false;
+});
 function evaluate(values) {
   let total = 0;
   let group = values[0];
@@ -486,12 +492,24 @@ function makeReport(item, includeRows) {
     }
   }
 }
+function currentReport() {
+  return activeTab === 'basic' ? { title: '기본 계산 결과', details: stats([['계산식', byId('expression').textContent || '—']]),
+    summary: stats([['결과', byId('number').textContent]]) } : reports[activeTab];
+}
+// 폰 크롬은 인쇄 미리보기를 늦게 만들어서, 창이 닫히고 화면이 다시 그려진 뒤에 인쇄를 부른다.
 dialog.addEventListener('close', () => {
   if (dialog.returnValue !== 'print') return;
-  const report = activeTab === 'basic' ? { title: '기본 계산 결과', details: stats([['계산식', byId('expression').textContent || '—']]),
-    summary: stats([['결과', byId('number').textContent]]) } : reports[activeTab];
-  if (report) {
-    makeReport(report, byId('include-rows').checked);
-    window.print();
-  }
+  const report = currentReport();
+  if (!report) return;
+  makeReport(report, byId('include-rows').checked);
+  printing = true;
+  document.fonts.ready.then(() => requestAnimationFrame(() => setTimeout(() => window.print(), 250)));
 });
+// 브라우저 메뉴의 인쇄로 바로 찍어도 백지가 되지 않게, 보고서가 비어 있으면 지금 화면 결과로 채운다.
+let printing = false;
+window.addEventListener('beforeprint', () => {
+  if (printing && byId('print-report').childElementCount) return;
+  const report = currentReport();
+  if (report) makeReport(report, false);
+});
+window.addEventListener('afterprint', () => { printing = false; });

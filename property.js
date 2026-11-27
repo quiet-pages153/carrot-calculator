@@ -198,9 +198,10 @@ const propertyRules = (() => {
   quickButton.type = 'button';
   quickButton.className = 'quick-button';
   quickButton.dataset.property = 'quick';
-  quickButton.textContent = '빠른 계산';
+  quickButton.textContent = '모르면 빠른계산';
+  let lastMode = 'transfer';
   byId('property').querySelector('h2').append(quickButton);
-  quickButton.addEventListener('click', () => selectProperty('quick'));
+  quickButton.addEventListener('click', () => selectProperty(mode === 'quick' ? lastMode : 'quick'));
 
   function toggleField(id, visible) {
     const group = byId(id);
@@ -235,7 +236,9 @@ const propertyRules = (() => {
   function selectProperty(next) {
     mode = next;
     [...picker.querySelectorAll('button'), quickButton].forEach(button => button.setAttribute('aria-pressed', String(button.dataset.property === mode)));
-    form.hidden = output.hidden = mode === 'quick';
+    form.hidden = output.hidden = picker.hidden = mode === 'quick';
+    if (mode !== 'quick') lastMode = mode;
+    quickButton.textContent = mode === 'quick' ? '← 기존 화면' : '모르면 빠른계산';
     quick.hidden = mode !== 'quick';
     if (mode === 'quick') { window.showQuickProperty?.(); return; }
     const config = fields[mode];
