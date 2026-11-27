@@ -593,7 +593,7 @@ function drawReportImage(item) {
     const rect = (x, top, w, h, color) => { if (draw) { ctx.fillStyle = color; ctx.fillRect(x, top, w, h); } };
     text('계산 결과 확인서', pad, y, 28, 400, '#b5531a'); y += 46;
     for (const line of wrap(item.title, W - pad * 2, 56, 800)) { text(line, pad, y, 56, 800); y += 70; }
-    text('작성일 ' + date + (item.basis ? '   요율 기준 ' + item.basis : ''), pad, y + 4, 28, 400, '#444'); y += 52;
+    text('작성일 ' + date + (item.basis ? '   요율 기준 ' + item.basis : ''), pad, y + 4, 28, 400, '#222'); y += 52;
     rect(pad, y, W - pad * 2, 5, '#4b2817'); y += 40;
     // 핵심 금액 상자: 가장 중요한 금액을 크게, 주요 금액 최대 3개를 그 아래에.
     if (graded.length) {
@@ -604,12 +604,12 @@ function drawReportImage(item) {
       const boxH = 48 + 40 + 84 + (keys.length ? 28 + keyLines.reduce((sum, [l, v]) => sum + l.length * 38 + v.length * 52 + 18, 0) : 0) + 16;
       if (draw) { ctx.fillStyle = '#fff4e8'; ctx.strokeStyle = '#d4691f'; ctx.lineWidth = 4; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(pad, boxTop, W - pad * 2, boxH, 24); else ctx.rect(pad, boxTop, W - pad * 2, boxH); ctx.fill(); ctx.stroke(); }
       y += 36;
-      text(mainLabel, pad + 40, y, 30, 600, '#6b4a35'); y += 48;
+      text(mainLabel, pad + 40, y, 30, 600, '#3d2414'); y += 48;
       text(mainValue, pad + 40, y, 72, 800, '#b5531a'); y += 96;
       if (keys.length) {
         rect(pad + 40, y, W - pad * 2 - 80, 2, '#e7b58c'); y += 26;
         keyLines.forEach(([labelLines, valueLines]) => {
-          labelLines.forEach(line => { text(line, pad + 40, y, 28, 400, '#6b4a35'); y += 38; });
+          labelLines.forEach(line => { text(line, pad + 40, y, 28, 400, '#3d2414'); y += 38; });
           valueLines.forEach(line => { text(line, pad + 40, y, 40, 800, '#2b1a10'); y += 52; });
           y += 18;
         });
@@ -627,8 +627,8 @@ function drawReportImage(item) {
         const h = Math.max(labelLines.length, valueLines.length) * (size + 12) + 32;
         rect(pad, y, W - pad * 2, h, strong ? '#fbe2c9' : key ? '#fff4e8' : '#fff');
         rect(pad, y, labelW, h, strong ? '#fbe2c9' : key ? '#fff4e8' : detail ? '#f6f6f6' : '#f3f3f3');
-        labelLines.forEach((line, i) => text(line, pad + (detail ? 44 : 20), y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 500 : 600, detail ? '#555' : '#222'));
-        valueLines.forEach((line, i) => text(line, W - pad - 20, y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 500 : 700, strong ? '#b5531a' : detail ? '#444' : '#111', 'right'));
+        labelLines.forEach((line, i) => text(line, pad + (detail ? 44 : 20), y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 600 : 600, '#222'));
+        valueLines.forEach((line, i) => text(line, W - pad - 20, y + 16 + i * (size + 12), size, strong || key ? 800 : detail ? 600 : 700, strong ? '#b5531a' : '#111', 'right'));
         y += h;
         rect(pad, y - 2, W - pad * 2, 2, strong ? '#111' : '#d0d0d0');
       });
@@ -639,9 +639,9 @@ function drawReportImage(item) {
     const boxH = 80 + noteLines.length * 42;
     if (draw) { ctx.strokeStyle = '#999'; ctx.lineWidth = 2; ctx.strokeRect(pad, y, W - pad * 2, boxH); }
     text('유의사항', pad + 28, y + 24, 30, 800);
-    noteLines.forEach((line, i) => text(line, pad + 28, y + 70 + i * 42, 28, 400, '#333'));
+    noteLines.forEach((line, i) => text(line, pad + 28, y + 70 + i * 42, 28, 400, '#222'));
     y += boxH + 36;
-    text('캐롯계산기 · ' + date + ' 작성', W - pad, y, 26, 400, '#777', 'right');
+    text('캐롯계산기 · ' + date + ' 작성', W - pad, y, 26, 400, '#444', 'right');
     return y + 26 + pad;
   };
   const height = paint(false);

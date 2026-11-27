@@ -208,3 +208,5 @@ button,summary,a{-webkit-tap-highlight-color:transparent}
 @page{margin:11mm 13mm}
 @media print{#print-report .doc-section:not(.doc-result):not(.print-detail) .stats{grid-template-columns:42mm 1fr 42mm 1fr}#print-report .doc-key-main strong{font-size:19pt}#print-report .doc-key{gap:2mm}#print-report .doc-key-list{padding-top:2mm}#print-report .doc-head{padding-bottom:3mm;margin-bottom:5mm}#print-report .doc-section{margin-bottom:5mm}#print-report .doc-notice{font-size:8.5pt}}
 @media print{#print-report .stats dt,#print-report .stats dd{padding:1mm 3mm}#print-report .doc-foot{margin-top:2.5mm;padding-top:1.5mm;break-before:avoid}}
+@media print{#print-report .doc-result .stats dt.g-detail,#print-report .doc-result .stats dd.g-detail{color:#111!important;font-weight:600!important}#print-report .doc-key p{color:#3d2414!important}}
+@media print{#print-report .doc-notice p{color:#222!important}#print-report .doc-foot{color:#444!important}#print-report .doc-meta dt,#print-report .doc-kind{color:#333!important}}
