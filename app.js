@@ -472,14 +472,22 @@ byId('print-open').addEventListener('click', () => {
   dialog.returnValue = '';
   dialog.showModal();
 });
+// 계산서는 공문서 말투(~합니다)로 바꿔 싣는다.
+const formal = text => [['이에요', '입니다'], ['예요', '입니다'], ['돼요', '됩니다'], ['있어요', '있습니다'], ['않아요', '않습니다'], ['했어요', '했습니다'], ['하세요', '하십시오'], ['해요', '합니다']]
+  .reduce((result, [from, to]) => result.replaceAll(from, to), text);
 function makeReport(item, includeRows) {
   const report = byId('print-report');
-  report.replaceChildren();
-  const title = document.createElement('h1');
-  title.textContent = item.title;
-  report.append(title);
-  report.insertAdjacentHTML('beforeend', item.details + item.summary + (item.comparison || '') +
-    (item.note ? '<p class="note">' + item.note + '</p>' : ''));
+  const now = new Date();
+  const date = now.getFullYear() + '. ' + (now.getMonth() + 1) + '. ' + now.getDate() + '.';
+  let number = 0;
+  const section = (title, body, extra = '') => '<section class="doc-section ' + extra + '"><h2>' + (++number) + '. ' + title + '</h2>' + body + '</section>';
+  report.innerHTML = '<header class="doc-head"><div><p class="doc-kind">계산 결과 확인서</p><h1>' + item.title + '</h1></div>' +
+    '<dl class="doc-meta"><dt>작성일</dt><dd>' + date + '</dd>' + (item.basis ? '<dt>요율 기준</dt><dd>' + item.basis + '</dd>' : '') + '</dl></header>' +
+    section('계산 조건', item.details) + section('계산 결과', item.summary, 'doc-result') +
+    (item.comparison ? section('상환 방식 비교', item.comparison) : '') +
+    '<section class="doc-notice"><h2>유의사항</h2>' + (item.note ? '<p>' + formal(item.note) + '</p>' : '') +
+    '<p>이 확인서는 입력한 조건으로 계산한 예상액이며 법적 효력이 없습니다. 실제 금액은 금융기관·관할 관청·중개사무소의 확인 결과에 따릅니다.</p></section>' +
+    '<footer class="doc-foot">캐롯계산기 · ' + date + ' 작성</footer>';
   if (includeRows && item.rows) {
     const pageSize = 28;
     const totalPages = Math.ceil(item.rows.length / pageSize);
@@ -491,6 +499,7 @@ function makeReport(item, includeRows) {
       report.append(page);
     }
   }
+  report.append(report.querySelector('.doc-foot'));
 }
 function currentReport() {
   return activeTab === 'basic' ? { title: '기본 계산 결과', details: stats([['계산식', byId('expression').textContent || '—']]),

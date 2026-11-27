@@ -91,7 +91,7 @@ const propertyRules = (() => {
   const output = byId('property-result');
   const picker = byId('property-options');
   const hint = byId('property-hint');
-  const basisDate = '2026.11.26 확인 기준';
+  const basisDate = '2026. 11. 26.';
   const percent = value => number.format(value) + '%';
   const money = (name, title, required = true) =>
     '<label class="full">' + title + '<input name="' + name + '" data-money inputmode="numeric" ' +
@@ -266,7 +266,8 @@ const propertyRules = (() => {
       output.innerHTML = '<h3>' + result.headline + '</h3><p class="property-amount">' + won(result.amount) + '</p>' + breakdown;
       reports.property = {
         title: config.title + ' 계산서',
-        details: stats([['요율 확인 기준일', basisDate], ...result.details]),
+        basis: basisDate,
+        details: stats(result.details),
         summary: stats([[result.headline, won(result.amount)]]) + breakdown,
         note: config.hint
       };
@@ -282,7 +283,7 @@ const propertyRules = (() => {
   const form = byId('property-quick-form');
   const output = byId('property-quick-result');
   const hint = byId('property-hint');
-  const basisDate = '2026.11.26 확인 기준';
+  const basisDate = '2026. 11. 26.';
   const percent = value => number.format(value) + '%';
   const state = {};
 
@@ -321,6 +322,18 @@ const propertyRules = (() => {
   }).join('');
   const quickHint = '개인 단독명의 기준 예상액이에요. 감면·특례, 일시적 2주택, 공동명의, 지분 거래는 계산하지 않아요. 큰 거래 전에는 세무사·중개사에게 확인하세요.';
 
+  const yesNo = { yes: '해당', no: '해당 없음', unknown: '미확인' };
+  const officialTerms = {
+    deal: ['거래 구분', { buy: '매수 (취득)', sell: '매도 (양도)', rent: '임대차 (전세·월세)' }],
+    kind: ['물건 종류', { home: '주택 (아파트 등)', officetel: '오피스텔', commercial: '상가·일반 건물' }],
+    count: ['취득 후 세대 주택 수', { 1: '1주택', 2: '2주택', 3: '3주택', 4: '4주택 이상' }],
+    area: ['조정대상지역 소재', yesNo],
+    size: ['국민주택규모 (전용 85㎡) 이하', { within: '해당', above: '해당 없음' }],
+    facilities: ['전용 입식 부엌·화장실·목욕시설', { yes: '구비', no: '미구비' }],
+    holding: ['보유기간', null], owned: ['양도 시 세대 주택 수', { 1: '1주택', 2: '2주택 이상' }],
+    residence: ['거주기간', null], zone: ['취득 당시 조정대상지역', yesNo],
+    costs: ['필요경비', null], other: ['당해 연도 다른 부동산 양도', { no: '없음', yes: '있음' }]
+  };
   const value = id => questions.find(q => q.id === id).money ? Number((state[id] || '').replaceAll(',', '')) : state[id];
   const answered = q => q.optional || (q.choices ? !!state[q.id] : q.money ? value(q.id) > 0 : state[q.id] !== undefined && state[q.id] !== '');
 
@@ -406,26 +419,29 @@ const propertyRules = (() => {
       let summary = [];
       if (state.deal === 'rent') {
         html = feeBox;
-        summary = [row('중개보수 상한', fee.maximum)];
+        summary = [row('중개보수 상한 (부가세 별도)', fee.maximum), row('보증금', value('deposit')), row('월 차임', value('monthly')), row('거래금액 환산액', fee.basis), ['상한요율', percent(fee.rate)]];
       } else if (state.deal === 'buy') {
         const price = value('price');
         const choice = acquisitionKind();
+        let lowTotal = null;
         const tax = propertyRules.acquisition({ kind: choice.kind, amount: price, size: state.size || 'above' });
         let notes = '';
         if (choice.alternative) {
           const low = propertyRules.acquisition({ kind: choice.alternative, amount: price, size: state.size || 'above' });
           notes += warn('조정대상지역이 아니면 ' + won(low.total) + '이에요. 확인해 보세요.');
+          lowTotal = low.total;
         }
         if (state.kind === 'home' && Number(state.count) >= 2) notes += info('이사 때문에 잠깐 2채가 되는 일시적 2주택, 공시가격이 낮은 주택(1억 원 이하 등)은 세금이 더 낮을 수 있어요. 주택 수 판단이 애매하면 구청 세무과에 확인하세요.');
         html = '<section class="pr-total"><h3>사는 데 드는 돈</h3><p class="property-amount">' + won(price + tax.total + fee.maximum) + '</p><p class="pr-sub">집값 + 취득세 + 중개보수 상한 (부가세 별도)</p></section>' +
           box('취득세 합계', tax.total, [['적용 세율', percent(tax.rate)], row('취득세', tax.tax), row('지방교육세', tax.education), row('농어촌특별세', tax.rural)], notes) + feeBox;
-        summary = [row('사는 데 드는 돈', price + tax.total + fee.maximum), row('취득세 합계', tax.total), ['적용 세율', percent(tax.rate)], row('중개보수 상한', fee.maximum)];
+        summary = [row('총 소요 예상액', price + tax.total + fee.maximum), row('취득가액', price), ['취득세율', percent(tax.rate)], row('취득세', tax.tax), row('지방교육세', tax.education), row('농어촌특별세', tax.rural), row('취득세 등 합계', tax.total), ...(lowTotal === null ? [] : [row('조정대상지역이 아닌 경우 취득세 등', lowTotal)]), row('중개보수 상한 (부가세 별도)', fee.maximum)];
       } else {
         const sale = value('price');
         const purchase = value('purchase');
         const holding = Number(state.holding);
         let taxBox;
         let taxTotal = null;
+        let taxRows = [];
         const multi = state.kind === 'home' && state.owned === '2';
         if (holding < 2 || multi) {
           taxBox = '<section class="pr-box"><h3>양도소득세</h3>' + warn(holding < 2 ? '2년 미만 보유는 세율이 달라(60~70% 등) 이 앱에서 계산하지 않아요. 세무사에게 확인하세요.' :
@@ -439,6 +455,7 @@ const propertyRules = (() => {
             allowance: state.other === 'yes' ? 0 : 2500000 };
           const tax = propertyRules.transfer(data);
           taxTotal = tax.total;
+          taxRows = [row('양도차익', tax.gain), row('과세대상 양도차익', tax.taxableGain), ['장기보유특별공제 (' + percent(tax.deductionRate) + ')', won(tax.deduction)], row('양도소득 기본공제', tax.usedAllowance), row('과세표준', tax.base), row('양도소득세', tax.national), row('개인지방소득세', tax.local)];
           let notes = '';
           if (qualified && sale <= 1200000000) notes += info('1세대 1주택 비과세예요 (12억 원 이하).');
           else if (qualified) notes += info('1세대 1주택 비과세 · 판 가격 중 12억 원을 넘는 비율만큼의 차익에만 세금이 붙어요.');
@@ -455,17 +472,18 @@ const propertyRules = (() => {
         }
         const net = sale - (taxTotal ?? 0) - fee.maximum;
         html = '<section class="pr-total"><h3>손에 남는 돈</h3><p class="property-amount">' + won(net) + '</p><p class="pr-sub">' + (taxTotal === null ? '판 가격 − 중개보수 상한 (양도세 빠짐, 대출 갚기 전)' : '판 가격 − 양도세 − 중개보수 상한 (대출 갚기 전, 부가세 별도)') + '</p></section>' + taxBox + feeBox;
-        summary = [row('손에 남는 돈', net), taxTotal === null ? ['양도소득세', '계산 안 함 (세무사 확인)'] : row('양도소득세 합계', taxTotal), row('중개보수 상한', fee.maximum)];
+        summary = [row('예상 실수령액 (대출 상환 전)', net), row('양도가액', sale), row('취득가액', purchase), ...taxRows, taxTotal === null ? ['양도소득세', '산정 제외 (세무 상담 필요)'] : row('양도소득세 등 합계', taxTotal), row('중개보수 상한 (부가세 별도)', fee.maximum)];
       }
       output.innerHTML = html;
-      const details = [['요율 확인 기준일', basisDate]];
+      const details = [];
       questions.forEach(q => {
-        if (q.when && !q.when(state)) return;
-        const text = typeof q.text === 'function' ? q.text(state) : q.text;
-        const answer = q.choices ? q.choices.find(([v]) => v === state[q.id])?.[1] : q.money ? won(value(q.id)) : state[q.id] + '년';
-        details.push([text, answer]);
+        if (q.when && !q.when(state) || ['price', 'purchase', 'deposit', 'monthly'].includes(q.id)) return;
+        const term = officialTerms[q.id];
+        const answer = q.choices ? (term[1]?.[state[q.id]] ?? q.choices.find(([v]) => v === state[q.id])?.[1]) : q.money ? won(value(q.id)) : state[q.id] + '년';
+        details.push([term[0], answer]);
       });
-      reports.property = { title: '부동산 계산서', details: stats(details), summary: stats(summary), note: quickHint };
+      const titles = { buy: '부동산 취득 비용 계산서', sell: '부동산 양도 비용 계산서', rent: '임대차 중개보수 계산서' };
+      reports.property = { title: titles[state.deal], basis: basisDate, details: stats(details), summary: stats(summary), note: quickHint };
     } catch (error) {
       output.innerHTML = '<p class="pr-warn">' + error.message + '</p>';
     }
